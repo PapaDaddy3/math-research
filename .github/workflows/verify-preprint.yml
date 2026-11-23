@@ -1,0 +1,86 @@
+name: Verify Braun preprint aggregate (pinned 8904bf09)
+
+# Mirrors upstream lean.yml; only the target differs: the paper's Appendix C.2 target
+# claims/BitPHPPreprintRevision1.lean instead of claims/BitPHPSuperpolynomial.lean.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    defaults:
+      run:
+        shell: bash
+        working-directory: formalization
+    env:
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
+      LEAN_NUM_THREADS: '2'
+      PINNED: 8904bf09a5376f48a00d1c25d079bf0c6441502a
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Record revision, prove formalization/ is unchanged from the pinned commit, reserve disk
+        run: |
+          export EVIDENCE="$RUNNER_TEMP/lean-evidence"
+          echo "EVIDENCE=$EVIDENCE" >> "$GITHUB_ENV"
+          mkdir -p "$EVIDENCE"
+          {
+            echo "HEAD: $(git rev-parse HEAD)"
+            echo "HEAD^: $(git rev-parse HEAD^)"
+            test "$(git rev-parse HEAD^)" = "$PINNED" && echo "parent == pinned commit: OK"
+            git diff --stat "$PINNED" HEAD -- . && echo "diff of formalization/ vs pinned (above, must be empty)"
+            test -z "$(git diff "$PINNED" HEAD -- .)" && echo "formalization/ identical to pinned: OK"
+            cat lean-toolchain
+            df -h .
+          } | tee "$EVIDENCE/environment.txt"
+          test -z "$(git diff "$PINNED" HEAD -- .)"
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h . | tee "$EVIDENCE/disk-before-toolchain.txt"
+
+      - name: Install the pinned Lean toolchain only
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formalization
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: false
+
+      - name: Fetch dependency cache (Mathlib only; project claims are rebuilt)
+        run: |
+          lean --version | tee "$EVIDENCE/lean-version.txt"
+          lake --version | tee "$EVIDENCE/lake-version.txt"
+          lake exe cache get claims/BitPHPPreprintRevision1.lean 2>&1 | tee "$EVIDENCE/cache.txt"
+          lake exe cache clean! 2>&1 | tee "$EVIDENCE/cache-clean.txt"
+          rm -rf .lake/build
+          git diff --exit-code -- lean-toolchain lakefile.lean lake-manifest.json
+          df -h . | tee "$EVIDENCE/disk-before-build.txt"
+
+      - name: Build the preprint aggregate and check types and transitive axioms
+        run: |
+          python3 verify.py --target claims/BitPHPPreprintRevision1.lean \
+            --out "$EVIDENCE/verification.txt"
+
+      - name: Replay the aggregate and imports in a fresh kernel environment
+        run: |
+          printf '%s\n' 'lake env leanchecker --fresh claims.BitPHPPreprintRevision1' | tee "$EVIDENCE/kernel-replay.txt"
+          lake env leanchecker --fresh claims.BitPHPPreprintRevision1 2>&1 | tee -a "$EVIDENCE/kernel-replay.txt"
+          printf '%s\n' 'PASS: fresh kernel replay exited successfully.' | tee -a "$EVIDENCE/kernel-replay.txt"
+
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preprint-verification-${{ github.sha }}
+          path: ${{ runner.temp }}/lean-evidence/
+          if-no-files-found: error
+          retention-days: 90
