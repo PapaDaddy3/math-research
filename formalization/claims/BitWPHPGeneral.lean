@@ -10,7 +10,7 @@ namespace MathResearch
 noncomputable section
 open PolynomialCalculus
 
-theorem bitWPHP_general : ∀ ℓ ≥ 32, ∀ (m : ℕ), 2^ℓ < m →
+theorem bitWPHP_general : ∀ (ℓ : ℕ), 32 ≤ ℓ → ∀ (m : ℕ), 2^ℓ < m →
     2*Real.log (m:ℝ) + 4 ≤ ((2^ℓ:ℕ):ℝ)^2/(8192*(ℓ:ℝ)^2*(m:ℝ)) → ∀ {S : ℕ}
     (C : Fin S → FiniteParityClause (BitVar m ℓ))
     (_dag : AffineDAG (usualBitPHPInitials m ℓ) C)
