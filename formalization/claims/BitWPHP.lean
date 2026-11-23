@@ -1,6 +1,6 @@
 /-
 Claim: cor:bit-WPHP-exponential (Stage 17 extension, not part of the upstream preprint)
-Source: https://github.com/PapaDaddy3/math-research/tree/wphp (Stage 17 extension)
+Source: https://github.com/PapaDaddy3/math-research/tree/wphp#bit-wphp-exponential
 Scope: Weak bit-PHP: for every bit length ℓ ≥ 32, n = 2^ℓ holes and ANY number of pigeons m with n < m ≤ 2n
 (including the classical weak PHP m = 2n), every refutation in the finite affine DAG calculus has more than
 exp(n/(32768 ℓ²)) nodes. Proof = the upstream proof of bitPHP_exponential with m generalized; Theorems 6.9
