@@ -4,6 +4,8 @@ name: Verify Braun preprint aggregate (pinned 8904bf09)
 # claims/BitPHPPreprintRevision1.lean instead of claims/BitPHPSuperpolynomial.lean.
 on:
   workflow_dispatch:
+  push:
+    branches: [verify-8904bf09]
 
 permissions:
   contents: read
