@@ -1,0 +1,61 @@
+name: DEV build (cached, NOT a verification run)
+
+on:
+  push:
+    branches: [wphp-dev]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    defaults:
+      run:
+        shell: bash
+        working-directory: formalization
+    env:
+      MATHLIB_NO_CACHE_ON_UPDATE: '1'
+      LEAN_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Free disk
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formalization
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: false
+      - name: Restore previous build
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: formalization/.lake
+          key: wphp-dev-${{ github.run_id }}
+          restore-keys: wphp-dev-
+      - name: Mathlib cache (first run only)
+        if: steps.restore.outputs.cache-matched-key == ''
+        run: lake exe cache get claims/BitWPHPGeneral.lean
+      - name: Build target
+        run: |
+          set -o pipefail
+          lake build claims.BitWPHPGeneral 2>&1 | grep -v "✔" | tee "$RUNNER_TEMP/build.log"
+      - name: Save build
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: formalization/.lake
+          key: wphp-dev-${{ github.run_id }}
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-build-log-${{ github.run_id }}
+          path: ${{ runner.temp }}/build.log
