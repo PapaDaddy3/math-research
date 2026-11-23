@@ -15,19 +15,8 @@ theorem tan_ninety_is_zero_in_lean : Real.tan (π / 2) = 0 := by
 
 /-- 그런데 90° 바로 앞에서는 tan이 어떤 수보다도 커진다(발산) -/
 theorem tan_unbounded_near_ninety (M : ℝ) : ∃ x : ℝ, 0 < x ∧ x < π / 2 ∧ M < Real.tan x := by
-  refine ⟨Real.arctan (M + 1) ⊔ (π/4), ?_, ?_, ?_⟩
-  · have := Real.pi_pos; positivity
-  · exact max_lt (Real.arctan_lt_pi_div_two _) (by linarith [Real.pi_pos])
-  · rcases le_total (Real.arctan (M+1)) (π/4) with h | h
-    · rw [max_eq_right h, Real.tan_pi_div_four]
-      have := Real.arctan_lt_pi_div_two (M+1)
-      have h2 : Real.tan (Real.arctan (M+1)) ≤ Real.tan (π/4) := by
-        apply Real.tan_le_tan_of_le_of_lt_pi_div_two
-        · linarith [Real.neg_pi_div_two_lt_arctan (M+1)]
-        · linarith [Real.pi_pos]
-        · exact h
-      rw [Real.tan_arctan, Real.tan_pi_div_four] at h2
-      linarith
-    · rw [max_eq_left h, Real.tan_arctan]; linarith
+  refine ⟨Real.arctan (|M| + 1), ?_, Real.arctan_lt_pi_div_two _, ?_⟩
+  · exact Real.arctan_pos.mpr (by positivity)
+  · rw [Real.tan_arctan]; linarith [le_abs_self M]
 
 end MathResearch
