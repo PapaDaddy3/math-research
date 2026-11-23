@@ -46,7 +46,7 @@ jobs:
       - name: Build target
         run: |
           set -o pipefail
-          lake build claims.BitWPHPGeneral 2>&1 | grep -v "✔" | tee "$RUNNER_TEMP/build.log"
+          lake build claims.Tan90 2>&1 | grep -v "✔" | tee "$RUNNER_TEMP/build.log"
       - name: Save build
         if: always()
         uses: actions/cache/save@v4
