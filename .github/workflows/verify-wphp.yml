@@ -35,11 +35,11 @@ jobs:
           mkdir -p "$EVIDENCE"
           git cat-file -e "${PINNED}^{commit}"
           git merge-base --is-ancestor "$PINNED" HEAD
-          git diff --quiet "$PINNED" HEAD -- . ":(exclude)claims/BitWPHP.lean"
+          git diff --quiet "$PINNED" HEAD -- . ":(exclude)claims/BitWPHP.lean" ":(exclude)claims/BitWPHPGeneral.lean" ":(exclude)claims/Stage17WPHP.lean"
           {
             echo "HEAD: $(git rev-parse HEAD)"
             echo "pinned commit present and ancestor of HEAD: OK"
-            echo "formalization/ identical to pinned $PINNED except new claims/BitWPHP.lean: OK"
+            echo "formalization/ identical to pinned $PINNED except new claims/BitWPHP.lean, BitWPHPGeneral.lean, Stage17WPHP.lean: OK"
             echo "commits after pinned (should touch only .github/workflows):"
             git diff --stat "$PINNED" HEAD -- ..
             cat lean-toolchain
@@ -63,7 +63,7 @@ jobs:
         run: |
           lean --version | tee "$EVIDENCE/lean-version.txt"
           lake --version | tee "$EVIDENCE/lake-version.txt"
-          lake exe cache get claims/BitWPHP.lean 2>&1 | tee "$EVIDENCE/cache.txt"
+          lake exe cache get claims/Stage17WPHP.lean 2>&1 | tee "$EVIDENCE/cache.txt"
           lake exe cache clean! 2>&1 | tee "$EVIDENCE/cache-clean.txt"
           rm -rf .lake/build
           git diff --exit-code -- lean-toolchain lakefile.lean lake-manifest.json
@@ -71,13 +71,13 @@ jobs:
 
       - name: Build the preprint aggregate and check types and transitive axioms
         run: |
-          python3 verify.py --target claims/BitWPHP.lean \
+          python3 verify.py --target claims/Stage17WPHP.lean \
             --out "$EVIDENCE/verification.txt"
 
       - name: Replay the aggregate and imports in a fresh kernel environment
         run: |
-          printf '%s\n' 'lake env leanchecker --fresh claims.BitWPHP' | tee "$EVIDENCE/kernel-replay.txt"
-          lake env leanchecker --fresh claims.BitWPHP 2>&1 | tee -a "$EVIDENCE/kernel-replay.txt"
+          printf '%s\n' 'lake env leanchecker --fresh claims.Stage17WPHP' | tee "$EVIDENCE/kernel-replay.txt"
+          lake env leanchecker --fresh claims.Stage17WPHP 2>&1 | tee -a "$EVIDENCE/kernel-replay.txt"
           printf '%s\n' 'PASS: fresh kernel replay exited successfully.' | tee -a "$EVIDENCE/kernel-replay.txt"
 
       - name: Preserve verification evidence
